@@ -17,132 +17,108 @@ parameter IDLE = 3'b000, WAIT_PASSWORD = 3'b001, WRONG_PASSWORD = 3'b010,
 reg [2:0] current_state, next_state;
 reg [31:0] counter_wait;
 
+// State Register
 always @(posedge clk or negedge rst) begin
-  if (~rst)
+  if (!rst)
     current_state <= IDLE;
   else
     current_state <= next_state;
 end
 
+// Counter for WAIT_PASSWORD state
 always @(posedge clk or negedge rst) begin
-  if (~rst)
-    counter_wait <= 0;
+  if (!rst)
+    counter_wait <= 32'd0;
   else if (current_state == WAIT_PASSWORD)
     counter_wait <= counter_wait + 1;
   else
-    counter_wait <= 0;
+    counter_wait <= 32'd0;
 end
 
+// Next-State Logic (Combinational)
 always @(*) begin
   case (current_state)
     IDLE: begin
-      if (sensor_entry == 1)
-      begin
-        next_state <= WAIT_PASSWORD;
-      end
+      if (sensor_entry)
+        next_state = WAIT_PASSWORD;
       else
-      begin
-        next_state <= IDLE;
-      end
+        next_state = IDLE;
     end
 
     WAIT_PASSWORD: begin
       if (counter_wait <= 3)
-      begin
-        next_state <= WAIT_PASSWORD;
-      end
+        next_state = WAIT_PASSWORD;
       else begin
         if (password == 4'b1101)
-        begin
-          next_state <= RIGHT_PASSWORD;
-        end
+          next_state = RIGHT_PASSWORD;
         else
-        begin
-          next_state <= WRONG_PASSWORD;
-        end
+          next_state = WRONG_PASSWORD;
       end
     end
 
     WRONG_PASSWORD: begin
       if (password == 4'b1101)
-      begin
-        next_state <= RIGHT_PASSWORD;
-      end
+        next_state = RIGHT_PASSWORD;
       else
-      begin
-        next_state <= WRONG_PASSWORD;
-      end
+        next_state = WRONG_PASSWORD;
     end
 
     RIGHT_PASSWORD: begin
-      if (sensor_entry == 1 && sensor_exit == 1)
-      begin
-        next_state <= SYS_STOP;
-      end
-      else if (sensor_exit == 1)
-      begin
-        next_state <= IDLE;
-      end
+      if (sensor_entry && sensor_exit)
+        next_state = SYS_STOP;
+      else if (sensor_exit)
+        next_state = IDLE;
       else
-      begin
-        next_state <= RIGHT_PASSWORD;
-      end
+        next_state = RIGHT_PASSWORD;
     end
 
     SYS_STOP: begin
       if (password == 4'b1101)
-      begin
-        next_state <= RIGHT_PASSWORD;
-      end
+        next_state = RIGHT_PASSWORD;
       else
-      begin
-        next_state <= SYS_STOP;
-      end
+        next_state = SYS_STOP;
     end
 
-    default: next_state <= IDLE;
+    default: next_state = IDLE;
   endcase
 end
 
-always @(current_state) begin
+// Output Logic (Combinational)
+always @(*) begin
+  // Default values to prevent latches
+  GREEN_LED  = 1'b0;
+  RED_LED    = 1'b0;
+  YELLOW_LED = 1'b0;
+  BLUE_LED   = 1'b0;
+
   case (current_state)
     IDLE: begin
-      GREEN_LED <= 1'b0;
-      RED_LED <= 1'b0;
-      YELLOW_LED <= 1'b0;
-      BLUE_LED <= 1'b1;
+      BLUE_LED = 1'b1;
     end
 
     WAIT_PASSWORD: begin
-      GREEN_LED <= 1'b0;
-      RED_LED <= 1'b0;
-      YELLOW_LED <= 1'b1;
-      BLUE_LED <= 1'b1;
+      YELLOW_LED = 1'b1;
+      BLUE_LED   = 1'b1;
     end
 
     WRONG_PASSWORD: begin
-      GREEN_LED <= 1'b0;
-      RED_LED <= ~RED_LED;
-      YELLOW_LED <= 1'b0;
-      BLUE_LED <= 1'b0;
+       RED_LED =1'b1;
     end
 
     RIGHT_PASSWORD: begin
-      GREEN_LED <= 1'b1;
-      RED_LED <= 1'b0;
-      BLUE_LED <= 1'b0;
-      YELLOW_LED <= 1'b0;
+      GREEN_LED = 1'b1;
     end
 
     SYS_STOP: begin
-      GREEN_LED <= 1'b0;
-      RED_LED <= 1'b1;
-      YELLOW_LED <= 1'b1;
-      BLUE_LED <= 1'b0;
+      RED_LED    = 1'b1;
+      YELLOW_LED = 1'b1;
     end
 
-
+    default: begin
+      BLUE_LED = 1'b1;
+    end
   endcase
 end
+
 
 endmodule
