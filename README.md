@@ -64,6 +64,3 @@ To test the system:
 4. RTL schemetic can be produced by using xilinx vivado
 
 
-## License
-
-This project is licensed under the MIT License. Feel free to use, modify, and distribute this code as per the terms of the license.
